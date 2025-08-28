@@ -89,8 +89,7 @@ export default function DietChartPDF({ patientName, dietChart, letterheadSetting
             {letterheadSettings?.nutritionistName || 'Rupa Sharma'}
           </p>
           <p style={{ margin: '4px 0 0' }}>
-            Certified Diet & Fitness Coach<br />
-            Certified Nutrition & Fitness Coach (INFS) <br />
+            Certified Nutrition & Fitness Coach (INFS Certified)<br />
             Certified Fitness/Wellness Coach (Medvarsity & Apollo Life)<br />
             Fellowship in Applied Nutrition<br />
             Fellowship in Clinical Nutrition (Medvarsity & Apollo Hospitals Education & Research Foundation)<br />

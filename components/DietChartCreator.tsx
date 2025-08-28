@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase';
-import html2pdf from 'html2pdf.js';
+// REMOVED: import html2pdf from 'html2pdf.js';
 import DietChartPDF from './DietChartPDF';
 
 // Type definitions
@@ -48,8 +48,6 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
   });
   const [saveSuccess, setSaveSuccess] = useState('');
   const [saveError, setSaveError] = useState('');
-
-  // ADDED: State for the notes section
   const [notes, setNotes] = useState('');
 
   const addFoodToMeal = (meal: Meal, foodItem: FoodItem) => {
@@ -149,19 +147,22 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
       await addDoc(dietChartsColRef, {
         chart: dietChart,
         totals: grandTotals,
-        notes: notes, // ADDED: Save notes to Firestore
+        notes: notes,
         createdAt: serverTimestamp(),
       });
       setSaveSuccess("Diet chart saved successfully!");
       setDietChart({ breakfast: [], lunch: [], snacks: [], dinner: [] });
-      setNotes(''); // Clear notes after saving
+      setNotes('');
     } catch (err) {
       console.error(err);
       setSaveError("Failed to save the diet chart.");
     }
   };
   
-  const handleExportPDF = () => {
+  // UPDATED: This function is now async and uses a dynamic import
+  const handleExportPDF = async () => {
+    const html2pdf = (await import('html2pdf.js')).default;
+
     const element = document.getElementById('diet-chart-to-export');
     const opt = {
       margin:       0.5,
@@ -200,7 +201,6 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
     <div className="bg-white p-6 rounded-lg shadow-md space-y-6">
       <h2 className="text-2xl font-bold">Diet Chart Creator</h2>
       
-      {/* Search Form */}
       <div className="border p-4 rounded-lg">
         <h3 className="text-xl font-semibold mb-2">1. Search & Add via API</h3>
         <form onSubmit={handleApiSearch} className="flex flex-col sm:flex-row gap-2">
@@ -218,7 +218,6 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
         {apiError && <p className="text-red-500 mt-2">{apiError}</p>}
       </div>
 
-      {/* Search Results */}
       {searchResults.length > 0 && (
         <div className="bg-blue-50 p-4 rounded-lg">
           <h3 className="font-semibold">Search Results</h3>
@@ -243,7 +242,6 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
         </div>
       )}
 
-      {/* Manual Entry Form */}
       <div className="border p-4 rounded-lg">
         <h3 className="text-xl font-semibold mb-2">2. Manually Add Food</h3>
         <div className="grid grid-cols-2 gap-2 mb-2">
@@ -262,7 +260,6 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
         </div>
       </div>
       
-      {/* Diet Chart Display */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {renderMealSection('breakfast', '🍳 Breakfast')}
           {renderMealSection('lunch', '🥗 Lunch')}
@@ -270,7 +267,6 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
           {renderMealSection('dinner', '🍲 Dinner')}
       </div>
 
-      {/* ADDED: Notes section UI */}
       <div className="border p-4 rounded-lg">
           <h3 className="text-xl font-semibold mb-2">3. Notes for Patient</h3>
           <textarea
@@ -282,7 +278,6 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
           />
       </div>
 
-      {/* Grand Totals and Action Buttons */}
       <div className="mt-6 p-4 bg-gray-100 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-4">
         <div>
             <h3 className="text-lg font-bold">Grand Totals</h3>
@@ -301,13 +296,12 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
         </div>
       </div>
 
-      {/* HIDDEN COMPONENT FOR PDF GENERATION */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
           <DietChartPDF 
             dietChart={dietChart} 
             patientName={patientName} 
             letterheadSettings={letterheadSettings}
-            notes={notes} // Pass notes to the PDF component
+            notes={notes}
           />
       </div>
     </div>
