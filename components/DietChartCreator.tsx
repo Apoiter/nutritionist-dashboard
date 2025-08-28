@@ -6,7 +6,7 @@ import { db } from '../firebase';
 import html2pdf from 'html2pdf.js';
 import DietChartPDF from './DietChartPDF';
 
-// Updated TypeScript types to match both API and manual entry data
+// Type definitions
 type FoodItem = {
   text: string;
   calories: number;
@@ -14,60 +14,49 @@ type FoodItem = {
   carbs: number;
   fat: number;
 };
-
 type Meal = 'breakfast' | 'lunch' | 'snacks' | 'dinner';
-
 type DietChart = {
   [key in Meal]: FoodItem[];
 };
-
-// Add a type for our settings data
 interface LetterheadSettings {
   nutritionistName?: string;
   email?: string;
   phone?: string;
 }
-
-// Update the props interface to include the new settings
 interface DietChartCreatorProps {
   patientId: string;
   patientName: string;
   letterheadSettings: LetterheadSettings | null;
 }
 
-// Update the function signature to accept the new prop
 export default function DietChartCreator({ patientId, patientName, letterheadSettings }: DietChartCreatorProps) {
-  // State for API search
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [apiError, setApiError] = useState('');
   const [searchResults, setSearchResults] = useState<FoodItem[]>([]);
-
-  // State for manual entry form
   const [manualFoodName, setManualFoodName] = useState('');
   const [manualCals, setManualCals] = useState('');
   const [manualProtein, setManualProtein] = useState('');
   const [manualCarbs, setManualCarbs] = useState('');
   const [manualFat, setManualFat] = useState('');
   const [manualError, setManualError] = useState('');
-
-  // Main diet chart state
   const [dietChart, setDietChart] = useState<DietChart>({
     breakfast: [],
     lunch: [],
     snacks: [],
     dinner: [],
   });
-  
   const [saveSuccess, setSaveSuccess] = useState('');
   const [saveError, setSaveError] = useState('');
+
+  // ADDED: State for the notes section
+  const [notes, setNotes] = useState('');
 
   const addFoodToMeal = (meal: Meal, foodItem: FoodItem) => {
     setDietChart(prevChart => ({
       ...prevChart,
       [meal]: [...prevChart[meal], foodItem],
     }));
-
     setSearchResults([]);
     setQuery('');
   };
@@ -78,19 +67,15 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
     setLoading(true);
     setApiError('');
     setSearchResults([]);
-
     const apiKey = process.env.NEXT_PUBLIC_CALORIE_NINJAS_API_KEY;
     const url = `https://api.calorieninjas.com/v1/nutrition?query=${encodeURIComponent(query)}`;
-
     try {
       const response = await fetch(url, {
         headers: { 'X-Api-Key': apiKey || '' },
       });
-
       if (!response.ok) {
         throw new Error('API request failed. Please check your query and API key.');
       }
-
       const data = await response.json();
       if (data.items && data.items.length > 0) {
         const parsedResults: FoodItem[] = data.items.map((item: any) => ({
@@ -114,17 +99,14 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
   const handleManualAdd = (e: React.FormEvent, meal: Meal) => {
     e.preventDefault();
     setManualError('');
-    
     const cals = Number(manualCals);
     const protein = Number(manualProtein);
     const carbs = Number(manualCarbs);
     const fat = Number(manualFat);
-
     if (!manualFoodName || isNaN(cals) || isNaN(protein) || isNaN(carbs) || isNaN(fat)) {
       setManualError('Please fill in all manual fields with valid numbers.');
       return;
     }
-
     const newFoodItem: FoodItem = {
       text: manualFoodName,
       calories: Math.round(cals),
@@ -132,9 +114,7 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
       carbs: Math.round(carbs),
       fat: Math.round(fat),
     };
-
     addFoodToMeal(meal, newFoodItem);
-    
     setManualFoodName('');
     setManualCals('');
     setManualProtein('');
@@ -164,16 +144,17 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
       setSaveError("Cannot save an empty diet chart.");
       return;
     }
-
     try {
       const dietChartsColRef = collection(db, 'patients', patientId, 'dietCharts');
       await addDoc(dietChartsColRef, {
         chart: dietChart,
         totals: grandTotals,
+        notes: notes, // ADDED: Save notes to Firestore
         createdAt: serverTimestamp(),
       });
       setSaveSuccess("Diet chart saved successfully!");
       setDietChart({ breakfast: [], lunch: [], snacks: [], dinner: [] });
+      setNotes(''); // Clear notes after saving
     } catch (err) {
       console.error(err);
       setSaveError("Failed to save the diet chart.");
@@ -289,6 +270,18 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
           {renderMealSection('dinner', '🍲 Dinner')}
       </div>
 
+      {/* ADDED: Notes section UI */}
+      <div className="border p-4 rounded-lg">
+          <h3 className="text-xl font-semibold mb-2">3. Notes for Patient</h3>
+          <textarea
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            placeholder="Add any specific instructions or notes for the patient here. Each new line will be a bullet point in the PDF."
+            className="w-full p-2 border rounded"
+            rows={4}
+          />
+      </div>
+
       {/* Grand Totals and Action Buttons */}
       <div className="mt-6 p-4 bg-gray-100 rounded-lg flex flex-col sm:flex-row justify-between items-center gap-4">
         <div>
@@ -310,7 +303,12 @@ export default function DietChartCreator({ patientId, patientName, letterheadSet
 
       {/* HIDDEN COMPONENT FOR PDF GENERATION */}
       <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
-          <DietChartPDF dietChart={dietChart} patientName={patientName} letterheadSettings={letterheadSettings} />
+          <DietChartPDF 
+            dietChart={dietChart} 
+            patientName={patientName} 
+            letterheadSettings={letterheadSettings}
+            notes={notes} // Pass notes to the PDF component
+          />
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import React from 'react';
 
-// Define the types for the props this component will receive
+// Type definitions
 type FoodItem = {
   text: string;
   calories: number;
@@ -8,29 +8,25 @@ type FoodItem = {
   carbs: number;
   fat: number;
 };
-
 type Meal = 'breakfast' | 'lunch' | 'snacks' | 'dinner';
-
 type DietChart = {
   [key in Meal]: FoodItem[];
 };
-
-// Add a type for the settings data
 interface LetterheadSettings {
   nutritionistName?: string;
   email?: string;
   phone?: string;
 }
 
-// Update the props interface to accept the new settings
+// Update the props interface to accept the new notes prop
 interface DietChartPDFProps {
   patientName: string;
   dietChart: DietChart;
   letterheadSettings: LetterheadSettings | null;
+  notes: string;
 }
 
-// Update the function signature to accept the new prop
-export default function DietChartPDF({ patientName, dietChart, letterheadSettings }: DietChartPDFProps) {
+export default function DietChartPDF({ patientName, dietChart, letterheadSettings, notes }: DietChartPDFProps) {
   
   const calculateTotals = (items: FoodItem[]) => {
     return items.reduce((acc, item) => ({
@@ -43,12 +39,11 @@ export default function DietChartPDF({ patientName, dietChart, letterheadSetting
 
   const grandTotals = calculateTotals(Object.values(dietChart).flat());
 
-  // Helper function to render each meal section as a table
   const renderMealTable = (title: string, items: FoodItem[]) => {
     if (items.length === 0) return null;
     const totals = calculateTotals(items);
     return (
-      <div style={{ marginBottom: '16px' }}>
+      <div style={{ marginBottom: '16px', pageBreakInside: 'avoid' }}>
         <h3 style={{ fontSize: '16px', fontWeight: 'bold', borderBottom: '1px solid #ccc', paddingBottom: '4px', marginBottom: '8px' }}>{title}</h3>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
           <thead>
@@ -84,55 +79,77 @@ export default function DietChartPDF({ patientName, dietChart, letterheadSetting
   };
 
   return (
-    // The id 'diet-chart-to-export' is crucial. We will target this element for PDF conversion.
-    <div id="diet-chart-to-export" style={{ padding: '20px', fontFamily: 'Arial, sans-serif', color: '#333' }}>
-      {/* DYNAMIC Letterhead */}
-      <header style={{ textAlign: 'center', borderBottom: '2px solid #333', paddingBottom: '10px', marginBottom: '20px' }}>
-        <h1 style={{ margin: 0, fontSize: '24px' }}>
-          {/* Use the dynamic data with a fallback */}
-          {letterheadSettings?.nutritionistName || 'Your Nutritionist Name'}
-        </h1>
-        <p style={{ margin: '4px 0 0' }}>
-          {/* Use the dynamic data with a fallback */}
-          {letterheadSettings?.email || 'your.email@example.com'} | {letterheadSettings?.phone || '(123) 456-7890'}
-        </p>
+    <div id="diet-chart-to-export" style={{ padding: '40px', fontFamily: 'Arial, sans-serif', color: '#333' }}>
+      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', borderBottom: '2px solid #eee', paddingBottom: '20px', marginBottom: '20px' }}>
+        <div style={{ flex: 1 }}>
+          <img src="/logo.png" alt="Fitspiration by Rupa" style={{ width: '250px', height: 'auto' }} />
+        </div>
+        <div style={{ flex: 1, textAlign: 'right', fontSize: '10px', color: '#555' }}>
+          <p style={{ margin: 0, fontWeight: 'bold', color: '#000', fontSize: '14px' }}>
+            {letterheadSettings?.nutritionistName || 'Rupa Sharma'}
+          </p>
+          <p style={{ margin: '4px 0 0' }}>
+            Certified Diet & Fitness Coach<br />
+            Certified Fitness/Wellness Coach (Medvarsity & Apollo Life)<br />
+            Fellowship in Applied Nutrition<br />
+            Fellowship in Clinical Nutrition (Medvarsity & Apollo Hospitals Education & Research Foundation)<br />
+            Certificate in Diabetic Nutrition (AHERF)<br />
+            Specialisation-Diabetic Nutrition
+          </p>
+          <p style={{ margin: '10px 0 0', fontWeight: 'bold' }}>
+            <span style={{ marginRight: '10px' }}>📞 {letterheadSettings?.phone || '9760022729'}</span>
+            <span>📧 {letterheadSettings?.email || 'rupasharma583@gmail.com'}</span>
+          </p>
+        </div>
       </header>
 
-      <main>
-        <h2 style={{ fontSize: '20px', marginBottom: '10px' }}>Diet Chart for: {patientName}</h2>
-        
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      <main style={{ maxWidth: '7.5in', margin: '0 auto' }}>
+        <h2 style={{ fontSize: '20px', marginBottom: '20px', textAlign: 'center' }}>Diet Chart for: {patientName}</h2>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {renderMealTable('🍳 Breakfast', dietChart.breakfast)}
           {renderMealTable('🥗 Lunch', dietChart.lunch)}
           {renderMealTable('🍎 Snacks', dietChart.snacks)}
           {renderMealTable('🍲 Dinner', dietChart.dinner)}
         </div>
-
-        {/* Grand Totals Section */}
-        <div style={{ marginTop: '20px', paddingTop: '10px', borderTop: '2px solid #333' }}>
-          <h3 style={{ fontSize: '16px', fontWeight: 'bold' }}>Grand Totals</h3>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+        <div style={{ marginTop: '30px', paddingTop: '10px', borderTop: '2px solid #eee', pageBreakInside: 'avoid' }}>
+          <h3 style={{ fontSize: '18px', fontWeight: 'bold', textAlign: 'right' }}>Grand Totals</h3>
+          <table style={{ width: '50%', borderCollapse: 'collapse', fontSize: '14px', marginLeft: '50%' }}>
             <tbody>
-              <tr style={{ fontWeight: 'bold', backgroundColor: '#f0f0f0' }}>
-                <td style={{ padding: '6px', border: '1px solid #ddd' }}>Total Calories</td>
-                <td style={{ textAlign: 'right', padding: '6px', border: '1px solid #ddd' }}>{grandTotals.calories}</td>
+              <tr style={{ backgroundColor: '#f9f9f9' }}>
+                <td style={{ padding: '8px', border: '1px solid #ddd', fontWeight: 'bold' }}>Total Calories</td>
+                <td style={{ textAlign: 'right', padding: '8px', border: '1px solid #ddd' }}>{grandTotals.calories}</td>
+              </tr>
+              <tr>
+                <td style={{ padding: '8px', border: '1px solid #ddd' }}>Total Protein</td>
+                <td style={{ textAlign: 'right', padding: '8px', border: '1px solid #ddd' }}>{grandTotals.protein}g</td>
               </tr>
               <tr style={{ backgroundColor: '#f9f9f9' }}>
-                <td style={{ padding: '6px', border: '1px solid #ddd' }}>Total Protein</td>
-                <td style={{ textAlign: 'right', padding: '6px', border: '1px solid #ddd' }}>{grandTotals.protein}g</td>
+                <td style={{ padding: '8px', border: '1px solid #ddd' }}>Total Carbs</td>
+                <td style={{ textAlign: 'right', padding: '8px', border: '1px solid #ddd' }}>{grandTotals.carbs}g</td>
               </tr>
-              <tr style={{ backgroundColor: '#f9f9f9' }}>
-                <td style={{ padding: '6px', border: '1px solid #ddd' }}>Total Carbs</td>
-                <td style={{ textAlign: 'right', padding: '6px', border: '1px solid #ddd' }}>{grandTotals.carbs}g</td>
-              </tr>
-              <tr style={{ backgroundColor: '#f9f9f9' }}>
-                <td style={{ padding: '6px', border: '1px solid #ddd' }}>Total Fat</td>
-                <td style={{ textAlign: 'right', padding: '6px', border: '1px solid #ddd' }}>{grandTotals.fat}g</td>
+              <tr>
+                <td style={{ padding: '8px', border: '1px solid #ddd' }}>Total Fat</td>
+                <td style={{ textAlign: 'right', padding: '8px', border: '1px solid #ddd' }}>{grandTotals.fat}g</td>
               </tr>
             </tbody>
           </table>
         </div>
       </main>
+
+      {/* ADDED: Notes section that starts on a new page */}
+      {notes && (
+        <div style={{ pageBreakBefore: 'always', paddingTop: '40px' }}>
+          <h2 style={{ fontSize: '20px', marginBottom: '20px', textAlign: 'center', borderBottom: '2px solid #eee', paddingBottom: '10px' }}>
+            Additional Notes & Instructions
+          </h2>
+          <ul style={{ paddingLeft: '20px', fontSize: '14px', lineHeight: '1.6' }}>
+            {/* Split the notes string by new lines and map to list items */}
+            {notes.split('\n').map((line, index) => (
+              line.trim() && <li key={index} style={{ marginBottom: '8px' }}>{line}</li>
+            ))}
+          </ul>
+        </div>
+      )}
     </div>
   );
 }

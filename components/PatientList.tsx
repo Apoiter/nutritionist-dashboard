@@ -1,10 +1,9 @@
-// components/PatientList.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, query, orderBy, doc, deleteDoc } from 'firebase/firestore'; // 1. IMPORT deleteDoc and doc
 import { db } from '../firebase';
-import Link from 'next/link'; // Import the Link component
+import Link from 'next/link';
 
 interface Patient {
   id: string;
@@ -13,7 +12,6 @@ interface Patient {
 }
 
 export default function PatientList() {
-  // ... (useState and useEffect code remains the same) ...
   const [patients, setPatients] = useState<Patient[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -30,6 +28,23 @@ export default function PatientList() {
     return () => unsubscribe();
   }, []);
 
+  // --- 2. ADD THE DELETE FUNCTION ---
+  const handleDeletePatient = async (patientId: string) => {
+    // Use a confirmation dialog as a safety measure
+    const isConfirmed = window.confirm("Are you sure you want to delete this patient? This action cannot be undone.");
+    
+    if (isConfirmed) {
+      try {
+        const patientDocRef = doc(db, 'patients', patientId);
+        await deleteDoc(patientDocRef);
+        // No need to update the state manually, onSnapshot will do it for us!
+      } catch (error) {
+        console.error("Error deleting patient: ", error);
+        alert("Failed to delete patient. Please try again.");
+      }
+    }
+  };
+
   if (loading) {
     return <p>Loading patients...</p>;
   }
@@ -42,13 +57,26 @@ export default function PatientList() {
       ) : (
         <ul className="space-y-2">
           {patients.map((patient) => (
-            // Wrap the list item in a Link component
-            <Link key={patient.id} href={`/patient/${patient.id}`}>
-              <li className="p-3 bg-gray-50 rounded-md border border-gray-200 hover:bg-blue-100 hover:border-blue-400 cursor-pointer transition-colors duration-200">
+            <li 
+              key={patient.id} 
+              className="p-3 bg-gray-50 rounded-md border border-gray-200 flex justify-between items-center"
+            >
+              <Link href={`/patient/${patient.id}`} className="flex-grow hover:text-blue-600">
                 <p className="font-semibold">{patient.name}</p>
                 <p className="text-sm text-gray-600">Age: {patient.age}</p>
-              </li>
-            </Link>
+              </Link>
+              
+              {/* --- 3. ADD THE DELETE BUTTON --- */}
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevents the link from being triggered
+                  handleDeletePatient(patient.id);
+                }}
+                className="ml-4 bg-red-500 hover:bg-red-700 text-white text-xs font-bold py-1 px-2 rounded"
+              >
+                Delete
+              </button>
+            </li>
           ))}
         </ul>
       )}
